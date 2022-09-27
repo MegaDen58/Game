@@ -5,19 +5,16 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.TimeUtils;
 
 import java.util.Iterator;
-import java.util.Stack;
 
 
 public class GameScreen implements Screen {
@@ -31,13 +28,15 @@ public class GameScreen implements Screen {
     TextureRegion backGround;
     Music backMusic;
     Rectangle wolf;
+    Texture dogImage;
     OrthographicCamera camera;
     long lastDropTime;
     int dropsGathered = 0;
+    int type = 0;
     Texture[] textures;
     Array<Donate> eggDrop;
 
-    class Donate{
+    static class Donate{
         int index;
         Rectangle rectangle;
         public Donate(Rectangle rectangle, int index){
@@ -54,10 +53,11 @@ public class GameScreen implements Screen {
         Egg1 = new Texture(Gdx.files.internal("egg1.png"));
         Egg2 = new Texture(Gdx.files.internal("egg2.png"));
         Egg3 = new Texture(Gdx.files.internal("egg3.png"));
-        textures = new Texture[]{Egg1, Egg2, Egg3};
+        dogImage = new Texture(Gdx.files.internal("dog.png"));
+        textures = new Texture[]{Egg1, Egg2, Egg3, dogImage};
         wolfImage = new Texture(Gdx.files.internal("wolf.png"));
 
-        dropSound = Gdx.audio.newSound(Gdx.files.internal("thanks-_2_.wav"));
+        dropSound = Gdx.audio.newSound(Gdx.files.internal("thanks.wav"));
         backMusic = Gdx.audio.newMusic(Gdx.files.internal("backmus.mp3"));
 
         backMusic.setLooping(true);
@@ -78,17 +78,20 @@ public class GameScreen implements Screen {
     }
 
     private void spawnRaindrop() {
-        int type = 0;
+
         Rectangle raindrop = new Rectangle();
         raindrop.x = MathUtils.random(0, 800 - 64);
         if(MathUtils.randomBoolean(0.25f)){
             type = 0;
         }
-        else if(MathUtils.randomBoolean(0.25f)){
+        else if(MathUtils.randomBoolean(0.2f)){
             type = 1;
         }
         else if(MathUtils.randomBoolean(0.25f)){
             type = 2;
+        }
+        else if(MathUtils.randomBoolean(0.3f)){
+            type = 3;
         }
         raindrop.y = 480;
         raindrop.width = 64;
@@ -134,28 +137,40 @@ public class GameScreen implements Screen {
         Iterator<Donate> iter = eggDrop.iterator();
         while (iter.hasNext()) {
             Donate donate = iter.next();
-            if(dropsGathered < 20){
+            donate.rectangle.y -= 200 * Gdx.graphics.getDeltaTime();
+            if(dropsGathered > 2){
                 donate.rectangle.y -= 200 * Gdx.graphics.getDeltaTime();
             }
-            if(dropsGathered >= 20){
+            if(dropsGathered > 4){
                 donate.rectangle.y -= 250 * Gdx.graphics.getDeltaTime();
             }
-            if(dropsGathered > 40){
+            if(dropsGathered > 6){
                 donate.rectangle.y -= 300 * Gdx.graphics.getDeltaTime();
             }
-            if(dropsGathered > 60){
+            if(dropsGathered > 8){
                 donate.rectangle.y -= 350 * Gdx.graphics.getDeltaTime();
             }
-            if(dropsGathered > 100){
+            if(dropsGathered > 10){
                 donate.rectangle.y -= 400 * Gdx.graphics.getDeltaTime();
             }
-            if (donate.rectangle.y + 64 < 0){
+            if (donate.rectangle.y + 64 < 0 && donate.index != 3){
                 iter.remove();
                 dropsGathered = 0;
             }
-
+            if(dropsGathered == 4){
+                game.setScreen(new Win(game));
+                dispose();
+            }
             if (donate.rectangle.overlaps(wolf)) {
-                dropsGathered++;
+                if(donate.index == 3 && (dropsGathered >= 10)){
+                    dropsGathered -= 10;
+                }
+                else if(donate.index == 3 && (dropsGathered <= 9)){
+                    dropsGathered = 0;
+                }
+                else if (donate.index != 3){
+                    dropsGathered++;
+                }
                 dropSound.play();
                 iter.remove();
             }
@@ -168,8 +183,6 @@ public class GameScreen implements Screen {
 
     @Override
     public void show() {
-        // воспроизведение фоновой музыки
-        // когда отображается экрана
         backMusic.play();
     }
 
@@ -193,9 +206,5 @@ public class GameScreen implements Screen {
         wolfImage.dispose();
         dropSound.dispose();
         backMusic.dispose();
-    }
-    public static int rnd(int max)
-    {
-        return (int) (Math.random() * ++max);
     }
 }
